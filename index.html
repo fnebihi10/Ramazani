@@ -149,7 +149,66 @@
             display: block;
         }
 
-        /* dhikr cards */
+        /* voluntary prayers */
+        .voluntary-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .voluntary-item {
+            background: white;
+            border-radius: 40px;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #c9a03d;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .voluntary-item input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            accent-color: #c9a03d;
+        }
+
+        /* taraweeh counter */
+        .counter-row {
+            background: white;
+            border-radius: 40px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid #e5d9c7;
+        }
+
+        .counter-row label {
+            font-weight: 600;
+            color: #1e2b36;
+            min-width: 140px;
+        }
+
+        .counter-row input {
+            width: 80px;
+            border: none;
+            border-bottom: 2px solid #c9a03d;
+            background: transparent;
+            text-align: center;
+            font-size: 1.2rem;
+            padding: 5px;
+        }
+
+        .counter-row input:focus {
+            outline: none;
+        }
+
+        .counter-row span {
+            color: #8e7b5e;
+        }
+
+        /* dhikr cards (unchanged) */
         .dhikr-grid {
             display: flex;
             flex-direction: column;
@@ -218,7 +277,7 @@
             outline: none;
         }
 
-        /* input groups */
+        /* other inputs */
         .input-row {
             background: white;
             border-radius: 20px;
@@ -327,15 +386,17 @@
 
 <script>
     (function() {
-        // ---------- Struktura e një dite ----------
+        // ---------- Struktura e një dite (e përmirësuar) ----------
         const defaultDay = {
             prayers: {
                 fajr: false,
-                dhuhr: false,    // emri anglisht, por në shfaqje do përdorim "Dhuhr - Dreka"
+                dhuhr: false,
                 asr: false,
                 maghrib: false,
                 isha: false,
-                taraweeh: false
+                nafl: false,            // namaz nafile
+                tahajjud: false,         // namaz nate
+                taraweehRakats: ''       // numri i rekateve (bosh = 0)
             },
             quranPages: '',
             quranSurahs: '',
@@ -344,17 +405,17 @@
                 elhamdulilah: { checked: false, count: '' },
                 allahuekber: { checked: false, count: '' },
                 estagfirullah: { checked: false, count: '' },
-                lailahaillallah_muhammad: { checked: false, count: '' },   // nr.5 (ish 5+6)
-                subhanallahi_ve_bi_hamdihi: { checked: false, count: '' }, // nr.6
-                hasbijallahu: { checked: false, count: '' },               // nr.7
-                lahawle: { checked: false, count: '' },                    // nr.8
-                salavatet: { checked: false, count: '' },                  // nr.9
-                lailahaillallah_wahdehu: { checked: false, count: '' },    // nr.10
-                estagfirullaha_ve_etubu: { checked: false, count: '' },    // nr.11
-                allahumma_inni_eseluke: { checked: false, count: '' },     // nr.12
-                ihlas_felek_nas: { checked: false, count: '' },            // nr.13
-                lailaha_illa_ente: { checked: false, count: '' },          // nr.14
-                hasbijallahu_la_ilaha: { checked: false, count: '' }       // nr.15
+                lailahaillallah_muhammad: { checked: false, count: '' },
+                subhanallahi_ve_bi_hamdihi: { checked: false, count: '' },
+                hasbijallahu: { checked: false, count: '' },
+                lahawle: { checked: false, count: '' },
+                salavatet: { checked: false, count: '' },
+                lailahaillallah_wahdehu: { checked: false, count: '' },
+                estagfirullaha_ve_etubu: { checked: false, count: '' },
+                allahumma_inni_eseluke: { checked: false, count: '' },
+                ihlas_felek_nas: { checked: false, count: '' },
+                lailaha_illa_ente: { checked: false, count: '' },
+                hasbijallahu_la_ilaha: { checked: false, count: '' }
             },
             dua: '',
             charity: '',
@@ -368,12 +429,24 @@
         }
 
         // Ngarko nga localStorage nëse ekziston
-        const stored = localStorage.getItem('ramadan30_data_dhikr_v2');
+        const stored = localStorage.getItem('ramadan30_data_dhikr_v3'); // Përdorim version të ri
         if (stored) {
             try {
                 const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed) && parsed.length === 30) {
-                    ramadanData = parsed;
+                    // Migrimi nga versioni i vjetër (me taraweeh boolean)
+                    ramadanData = parsed.map(day => {
+                        // Nëse ka fushën e vjetër 'taraweeh' boolean, konverto
+                        if (day.prayers && typeof day.prayers.taraweeh === 'boolean') {
+                            day.prayers.taraweehRakats = day.prayers.taraweeh ? 20 : '';
+                            delete day.prayers.taraweeh;
+                        }
+                        // Sigurohu që ka fushat e reja
+                        if (!day.prayers.nafl) day.prayers.nafl = false;
+                        if (!day.prayers.tahajjud) day.prayers.tahajjud = false;
+                        if (!day.prayers.taraweehRakats) day.prayers.taraweehRakats = '';
+                        return day;
+                    });
                 }
             } catch (e) {}
         }
@@ -386,16 +459,40 @@
             const dayNum = currentDay + 1;
 
             let html = `
-                <!-- NAMAZET -->
+                <!-- NAMAZET FARZ (5 kohë) -->
                 <div class="section">
-                    <div class="section-title">Namazet</div>
+                    <div class="section-title">Namazet farz</div>
                     <div class="prayer-grid">
                         <div class="prayer-item"><input type="checkbox" id="fajr" ${d.prayers.fajr ? 'checked' : ''}><label for="fajr" class="prayer-name">Fajr <small>Sabahu</small></label></div>
                         <div class="prayer-item"><input type="checkbox" id="dhuhr" ${d.prayers.dhuhr ? 'checked' : ''}><label for="dhuhr" class="prayer-name">Dhuhr <small>Dreka</small></label></div>
                         <div class="prayer-item"><input type="checkbox" id="asr" ${d.prayers.asr ? 'checked' : ''}><label for="asr" class="prayer-name">Asr <small>Ikindija</small></label></div>
                         <div class="prayer-item"><input type="checkbox" id="maghrib" ${d.prayers.maghrib ? 'checked' : ''}><label for="maghrib" class="prayer-name">Maghrib <small>Akshami</small></label></div>
                         <div class="prayer-item"><input type="checkbox" id="isha" ${d.prayers.isha ? 'checked' : ''}><label for="isha" class="prayer-name">Isha <small>Jacia</small></label></div>
-                        <div class="prayer-item"><input type="checkbox" id="taraweeh" ${d.prayers.taraweeh ? 'checked' : ''}><label for="taraweeh" class="prayer-name">Taraweeh <small>Teravia</small></label></div>
+                    </div>
+                </div>
+
+                <!-- NAMAZET VULLNETARE -->
+                <div class="section">
+                    <div class="section-title">Namazet vullnetare</div>
+                    <div class="voluntary-row">
+                        <div class="voluntary-item">
+                            <input type="checkbox" id="nafl" ${d.prayers.nafl ? 'checked' : ''}>
+                            <label for="nafl"><strong>Nafl</strong> <small style="color:#8e7b5e;">Nafile</small></label>
+                        </div>
+                        <div class="voluntary-item">
+                            <input type="checkbox" id="tahajjud" ${d.prayers.tahajjud ? 'checked' : ''}>
+                            <label for="tahajjud"><strong>Tahaxhud</strong> <small style="color:#8e7b5e;">Namaz nate</small></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TERAVITË -->
+                <div class="section">
+                    <div class="section-title">Namazi i teravive</div>
+                    <div class="counter-row">
+                        <label for="taraweehRakats">Sa rekate? (x/20):</label>
+                        <input type="number" id="taraweehRakats" min="0" max="20" step="1" value="${d.prayers.taraweehRakats}" placeholder="0">
+                        <span>rekate</span>
                     </div>
                 </div>
 
@@ -412,7 +509,6 @@
                     <div class="dhikr-grid">
             `;
 
-            // Lista e dhikr-ave me numrat e rinj (1-15)
             const dhikrList = [
                 { id: 'subhanallah', label: '1. Subhanallah', arabic: 'سُبْحَانَ اللَّهِ', defaultCount: '100' },
                 { id: 'elhamdulilah', label: '2. Elhamdulilah', arabic: 'الْحَمْدُ لِلَّهِ', defaultCount: '100' },
@@ -433,7 +529,6 @@
 
             dhikrList.forEach(item => {
                 const dh = d.dhikr[item.id] || { checked: false, count: '' };
-                // Nëse nuk ka count të ruajtur, vendos defaultCount për shfaqje (por nuk e mbishkruan derisa useri shtyp)
                 const countValue = (dh.count === '' && item.defaultCount) ? item.defaultCount : dh.count;
                 html += `
                     <div class="dhikr-card">
@@ -452,7 +547,7 @@
             });
 
             html += `
-                    </div> <!-- dhikr-grid -->
+                    </div>
                 </div>
 
                 <!-- LUTJA E DITËS -->
@@ -484,7 +579,6 @@
             document.getElementById('dayDisplay').innerHTML = `Dita ${dayNum} <small>${dayNum} Ramazan 1446</small>`;
         }
 
-        // Ndihmëse për escape HTML
         function escapeHtml(unsafe) {
             if (!unsafe) return '';
             return unsafe.replace(/[&<>"]/g, function(m) {
@@ -500,19 +594,26 @@
         function saveCurrentDay() {
             const d = ramadanData[currentDay];
 
-            // Namazet (IDs tani përputhen me emrat anglisht)
+            // Farz
             d.prayers.fajr = document.getElementById('fajr')?.checked || false;
             d.prayers.dhuhr = document.getElementById('dhuhr')?.checked || false;
             d.prayers.asr = document.getElementById('asr')?.checked || false;
             d.prayers.maghrib = document.getElementById('maghrib')?.checked || false;
             d.prayers.isha = document.getElementById('isha')?.checked || false;
-            d.prayers.taraweeh = document.getElementById('taraweeh')?.checked || false;
+
+            // Vullnetare
+            d.prayers.nafl = document.getElementById('nafl')?.checked || false;
+            d.prayers.tahajjud = document.getElementById('tahajjud')?.checked || false;
+
+            // Teravitë
+            const taraweehInput = document.getElementById('taraweehRakats');
+            d.prayers.taraweehRakats = taraweehInput ? taraweehInput.value : '';
 
             // Kurani
             d.quranPages = document.getElementById('quranPages')?.value || '';
             d.quranSurahs = document.getElementById('quranSurahs')?.value || '';
 
-            // Dhikr (lista e ID-ve)
+            // Dhikr
             const dhikrIds = [
                 'subhanallah', 'elhamdulilah', 'allahuekber', 'estagfirullah',
                 'lailahaillallah_muhammad', 'subhanallahi_ve_bi_hamdihi', 'hasbijallahu',
@@ -532,13 +633,11 @@
                 }
             });
 
-            // Fusha të tjera
             d.dua = document.getElementById('dua')?.value || '';
             d.charity = document.getElementById('charity')?.value || '';
             d.reflection = document.getElementById('reflection')?.value || '';
 
-            // Ruaj në localStorage
-            localStorage.setItem('ramadan30_data_dhikr_v2', JSON.stringify(ramadanData));
+            localStorage.setItem('ramadan30_data_dhikr_v3', JSON.stringify(ramadanData));
         }
 
         // ---------- Event listeners ----------
