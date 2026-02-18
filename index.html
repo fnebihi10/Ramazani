@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Ramazani</title>
-    <!-- Font për ikona (FontAwesome) – për një pamje më profesionale -->
+    <title>Ramadan 2026 Tracker · Dhikr & Namaze</title>
+    <!-- Font për ikona (FontAwesome) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -436,10 +436,10 @@
 <body>
 <div class="app-container" id="app">
     <div class="header">
-        <h1>RAMADAN 30 <span>Ramadan Tracker</span></h1>
+        <h1>Ramadan 2026 <span>Ramadan Tracker</span></h1>
     </div>
 
-    <!-- Përmbledhje e shpejtë ditore (përditësohet me JavaScript) -->
+    <!-- Përmbledhje e shpejtë ditore -->
     <div class="day-summary" id="daySummary">
         <div class="summary-item"><i class="fas fa-mosque"></i><div class="summary-value" id="summaryFarz">0/5</div><div>Farz</div></div>
         <div class="summary-item"><i class="fas fa-star-and-crescent"></i><div class="summary-value" id="summaryNafl">0</div><div>Nafl</div></div>
@@ -509,14 +509,13 @@
         }
 
         // Ngarko nga localStorage (versioni i ri)
-        const stored = localStorage.getItem('ramadan30_data_v4');
+        const stored = localStorage.getItem('ramadan2026_data_v4');
         if (stored) {
             try {
                 const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed) && parsed.length === 30) {
-                    // Migrim nga versionet e vjetra
                     ramadanData = parsed.map(day => {
-                        // Nëse ka fushën e vjetër 'nafl' boolean, konverto në numër (1 rekate = 2? por le të jetë 1 për thjeshtësi)
+                        // Migrim nga versionet e vjetra (nëse kanë fusha boolean)
                         if (day.prayers && typeof day.prayers.nafl === 'boolean') {
                             day.prayers.naflRakats = day.prayers.nafl ? '2' : '';
                             delete day.prayers.nafl;
@@ -525,7 +524,6 @@
                             day.prayers.tahajjudRakats = day.prayers.tahajjud ? '2' : '';
                             delete day.prayers.tahajjud;
                         }
-                        // Siguro që ka fushat e reja
                         if (!day.prayers.naflRakats) day.prayers.naflRakats = '';
                         if (!day.prayers.tahajjudRakats) day.prayers.tahajjudRakats = '';
                         if (!day.prayers.taraweehRakats) day.prayers.taraweehRakats = '';
@@ -756,7 +754,7 @@
             d.charity = document.getElementById('charity')?.value || '';
             d.reflection = document.getElementById('reflection')?.value || '';
 
-            localStorage.setItem('ramadan30_data_v4', JSON.stringify(ramadanData));
+            localStorage.setItem('ramadan2026_data_v4', JSON.stringify(ramadanData));
             updateSummary();
         }
 
@@ -793,7 +791,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `ramadan30_pro_${new Date().toISOString().slice(0,10)}.json`;
+            a.download = `ramadan2026_tracker_${new Date().toISOString().slice(0,10)}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
